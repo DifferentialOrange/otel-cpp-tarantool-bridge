@@ -3,12 +3,17 @@
 To build this exact example in-source, run
 ```bash
 git submodule update --init --recursive
-cmake -DBUILD_TESTING=false . && cmake --build .
+cmake -DBUILD_TESTING=OFF -DWITH_PROMETHEUS=ON . && cmake --build .
 ```
 
 Then run the application
 ```bash
-./metrics_ostream_example
+./metrics
+```
+
+Check from another terminal
+```bash
+curl localhost:9464/metrics
 ```
 
 This example initializes the metrics pipeline with 3 different instrument types:
