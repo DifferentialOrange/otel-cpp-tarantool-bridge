@@ -7,3 +7,5 @@ CMakeFiles
 lib
 
 metrics
+
+*.so

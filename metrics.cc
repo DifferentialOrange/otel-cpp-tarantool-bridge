@@ -18,6 +18,14 @@ namespace common          = opentelemetry::common;
 namespace exportermetrics = opentelemetry::exporter::metrics;
 namespace metrics_api     = opentelemetry::metrics;
 
+#include <iostream>
+#include <iterator>
+
+extern "C" {
+#include <lauxlib.h>
+#include <lua.h>
+}  // extern "C"
+
 namespace
 {
 
@@ -83,39 +91,44 @@ void CleanupMetrics()
 }
 }  // namespace
 
-int main(int argc, char **argv)
+static int run(lua_State* L) noexcept
 {
-  std::string example_type;
-  if (argc >= 2)
-  {
-    example_type = argv[1];
-  }
-
-  std::string name{"ostream_metric_example"};
+  std::string name{"metric_example"};
   InitMetrics(name);
 
-  if (example_type == "counter")
-  {
-    foo_library::counter_example(name);
-  }
-  else if (example_type == "observable_counter")
-  {
-    foo_library::observable_counter_example(name);
-  }
-  else if (example_type == "histogram")
-  {
-    foo_library::histogram_example(name);
-  }
-  else
-  {
-    std::thread counter_example{&foo_library::counter_example, name};
-    std::thread observable_counter_example{&foo_library::observable_counter_example, name};
-    std::thread histogram_example{&foo_library::histogram_example, name};
+  std::thread counter_example{&foo_library::counter_example, name};
+  std::thread observable_counter_example{&foo_library::observable_counter_example, name};
+  std::thread histogram_example{&foo_library::histogram_example, name};
 
-    counter_example.join();
-    observable_counter_example.join();
-    histogram_example.join();
-  }
+  counter_example.join();
+  observable_counter_example.join();
+  histogram_example.join();
 
   CleanupMetrics();
+
+  return 1;
+}
+
+// Copied from Lua 5.3 so that we can use it with Lua 5.1.
+static void setfuncs(lua_State* L, const luaL_Reg* l, int nup) {
+  luaL_checkstack(L, nup + 1, "too many upvalues");
+  for (; l->name != NULL; l++) { /* fill the table with given functions */
+    int i;
+    lua_pushstring(L, l->name);
+    for (i = 0; i < nup; i++) /* copy upvalues to the top */
+      lua_pushvalue(L, -(nup + 1));
+    lua_pushcclosure(L, l->func, nup); /* closure with those upvalues */
+    lua_settable(L, -(nup + 3));
+  }
+  lua_pop(L, nup); /* remove upvalues */
+}
+
+extern "C" int luaopen_metrics(lua_State* L) {
+  lua_newtable(L);
+  const struct luaL_Reg functions[] = {
+      {"run", run},
+      {nullptr, nullptr}};
+  setfuncs(L, functions, 0);
+
+  return 1;
 }

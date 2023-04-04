@@ -3,7 +3,7 @@
 To build this exact example in-source, run
 ```bash
 git submodule update --init --recursive
-cmake -DBUILD_TESTING=OFF -DWITH_PROMETHEUS=ON . && cmake --build .
+cmake -DBUILD_TESTING=OFF -DWITH_PROMETHEUS=ON -DBUILD_SHARED_LIBS=ON . && cmake --build .
 ```
 
 Then run the application
