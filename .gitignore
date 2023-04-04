@@ -1,0 +1,9 @@
+cmake_install.cmake
+CMakeCache.txt
+Makefile
+_deps
+bin
+CMakeFiles
+lib
+
+metrics_ostream_example
