@@ -3,7 +3,8 @@
 
 #include <memory>
 #include <thread>
-#include "opentelemetry/exporters/prometheus/exporter.h"
+#include "opentelemetry/exporters/otlp/otlp_http_metric_exporter.h"
+#include "opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h"
 #include "opentelemetry/metrics/provider.h"
 #include "opentelemetry/sdk/metrics/aggregation/default_aggregation.h"
 #include "opentelemetry/sdk/metrics/aggregation/histogram_aggregation.h"
@@ -15,7 +16,7 @@
 
 namespace metric_sdk      = opentelemetry::sdk::metrics;
 namespace common          = opentelemetry::common;
-namespace exportermetrics = opentelemetry::exporter::metrics;
+namespace exportermetrics = opentelemetry::exporter::otlp;
 namespace metrics_api     = opentelemetry::metrics;
 
 #include <iostream>
@@ -31,18 +32,20 @@ namespace
 
 void InitMetrics(const std::string &name)
 {
-  exportermetrics::PrometheusExporterOptions exporter_options;
-  exporter_options.url = "localhost:9464";
-  std::shared_ptr<metric_sdk::MetricReader> prometheus_exporter(
-      new exportermetrics::PrometheusExporter(exporter_options));
+  exportermetrics::OtlpHttpMetricExporterOptions exporter_options;
+  auto exporter = exportermetrics::OtlpHttpMetricExporterFactory::Create(exporter_options);
 
   std::string version{"1.2.0"};
   std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
 
-  // Initialize and set the global MeterProvider
+  metric_sdk::PeriodicExportingMetricReaderOptions options;
+  options.export_interval_millis = std::chrono::milliseconds(1000);
+  options.export_timeout_millis  = std::chrono::milliseconds(500);
+  std::unique_ptr<metric_sdk::MetricReader> reader{
+      new metric_sdk::PeriodicExportingMetricReader(std::move(exporter), options)};
   auto provider = std::shared_ptr<metrics_api::MeterProvider>(new metric_sdk::MeterProvider());
   auto p        = std::static_pointer_cast<metric_sdk::MeterProvider>(provider);
-  p->AddMetricReader(prometheus_exporter);
+  p->AddMetricReader(std::move(reader));
 
   // counter view
   std::string counter_name = name + "_counter";
