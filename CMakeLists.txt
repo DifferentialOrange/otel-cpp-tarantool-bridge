@@ -18,7 +18,7 @@ include_directories(${CMAKE_SOURCE_DIR}/opentelemetry-cpp/exporters/otlp/include
 include_directories(${CMAKE_SOURCE_DIR}/opentelemetry-cpp/third_party/opentelemetry-proto/gen/cpp)
 include_directories(${TARANTOOL_INCLUDE_DIRS})
 
-add_library(metrics SHARED metrics_v2.cc)
+add_library(metrics SHARED metrics.cc)
 target_link_libraries(
   metrics ${CMAKE_THREAD_LIBS_INIT} opentelemetry_metrics
   opentelemetry_exporter_otlp_http_metric opentelemetry_resources

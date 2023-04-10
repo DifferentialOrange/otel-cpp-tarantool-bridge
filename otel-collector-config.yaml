@@ -1,0 +1,16 @@
+receivers:
+  otlp:
+    protocols:
+      http:
+
+exporters:
+  prometheus:
+    endpoint: localhost:8889
+
+service:
+  extensions: []
+  pipelines:
+    metrics:
+      receivers: [otlp]
+      processors: []
+      exporters: [prometheus]
