@@ -12,3 +12,4 @@ metrics
 generated
 opentelemetry-proto-prefix
 *.a
+!artifacts/metrics.so
