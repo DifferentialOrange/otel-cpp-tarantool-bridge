@@ -6,6 +6,9 @@ Prototype may segfault or memory leak on resources cleanup
 To build the shared library for Lua in-source, run
 ```bash
 git submodule update --init --recursive
+cd ./opentelemetry-cpp/third_party/opentelemetry-proto
+make PROTOC=protoc gen-cpp
+cd ../../..
 cmake -DBUILD_TESTING=OFF -DWITH_OTLP_HTTP=ON -DBUILD_SHARED_LIBS=ON  . && cmake --build .
 ```
 

@@ -10,3 +10,5 @@ metrics
 
 *.so
 generated
+opentelemetry-proto-prefix
+*.a
