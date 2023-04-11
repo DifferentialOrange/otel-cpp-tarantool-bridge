@@ -96,16 +96,7 @@ static int lua_provider_new_counter(struct lua_State *L)
 	std::string version{"1.2.0"};
 	std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
 
-  	std::string counter_name = name + "_counter";
-  	std::unique_ptr<metric_sdk::InstrumentSelector> instrument_selector{
-      	new metric_sdk::InstrumentSelector(metric_sdk::InstrumentType::kCounter, counter_name)};
-  	std::unique_ptr<metric_sdk::MeterSelector> meter_selector{
-      	new metric_sdk::MeterSelector(name, version, schema)};
-  	std::unique_ptr<metric_sdk::View> sum_view{
-      new metric_sdk::View{name, "description", metric_sdk::AggregationType::kSum}};
-
-	(*provider_ptr)->AddView(std::move(instrument_selector), std::move(meter_selector), std::move(sum_view));
-
+	std::string counter_name = name + "_counter";
 	nostd::shared_ptr<metrics_api::Meter> meter = (*provider_ptr)->GetMeter(name, version);
 	nostd::unique_ptr<metrics_api::Counter<double>> double_counter = meter->CreateDoubleCounter(counter_name);
 
