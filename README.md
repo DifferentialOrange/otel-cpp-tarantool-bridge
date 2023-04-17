@@ -24,7 +24,7 @@ Then setup the application
 ```lua
 metrics = require('metrics')
 
-provider = metrics.new()
+provider = provider.new()
 
 provider:init_otlp_http_exporter("http://localhost:4318/v1/metrics")
 

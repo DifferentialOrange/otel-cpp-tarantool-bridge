@@ -195,7 +195,7 @@ extern "C" int luaopen_metrics(struct lua_State *L)
 
 	lua_newtable(L);
 	static const struct luaL_Reg meta [] = {
-		{"new", lua_create_provider},
+		{"provider", lua_create_provider},
 		{NULL, NULL}
 	};
 	setfuncs(L, meta, 0);
