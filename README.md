@@ -28,7 +28,9 @@ provider = metrics.new()
 
 provider:init_otlp_http_exporter("http://localhost:4318/v1/metrics")
 
-c = provider:new_counter("my_counter")
+meter = provider:meter("my_state")
+
+c = meter:double_counter("my_counter")
 
 c:add(4)
 ```

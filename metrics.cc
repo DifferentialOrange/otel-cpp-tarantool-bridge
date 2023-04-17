@@ -33,7 +33,8 @@ extern "C" {
 
 extern "C" {
 static const char otlp_provider_mt_name[] = "__tnt_otlp_provider";
-static const char otlp_counter_mt_name[] = "__tnt_otlp_counter";
+static const char otlp_meter_mt_name[] = "__tnt_otlp_meter";
+static const char otlp_double_counter_mt_name[] = "__tnt_otlp_double_counter";
 }
 
 static int lua_create_provider(struct lua_State *L)
@@ -88,22 +89,35 @@ static int lua_provider_init_otlp_http_exporter(struct lua_State *L)
 	return 0;
 }
 
-static int lua_provider_new_counter(struct lua_State *L)
+static int lua_provider_new_meter(struct lua_State *L)
 {
 	metric_sdk::MeterProvider** provider_ptr = (metric_sdk::MeterProvider **) luaL_checkudata(L, 1, otlp_provider_mt_name);
 	std::string name = luaL_checkstring(L, 2);
 
 	std::string version{"1.2.0"};
-	std::string schema{"https://opentelemetry.io/schemas/1.2.0"};
 
-	std::string counter_name = name + "_counter";
 	nostd::shared_ptr<metrics_api::Meter> meter = (*provider_ptr)->GetMeter(name, version);
-	nostd::unique_ptr<metrics_api::Counter<double>> double_counter = meter->CreateDoubleCounter(counter_name);
+
+	metrics_api::Meter** meter_ptr = (metrics_api::Meter **) lua_newuserdata(L, sizeof(metrics_api::Meter*));
+	*meter_ptr = meter.get();
+
+	luaL_getmetatable(L, otlp_meter_mt_name);
+	lua_setmetatable(L, -2);
+
+	return 1;
+}
+
+static int lua_meter_new_double_counter(struct lua_State *L)
+{
+	metrics_api::Meter** meter_ptr = (metrics_api::Meter **) luaL_checkudata(L, 1, otlp_meter_mt_name);
+	std::string counter_name = luaL_checkstring(L, 2);
+
+	nostd::unique_ptr<metrics_api::Counter<double>> double_counter = (*meter_ptr)->CreateDoubleCounter(counter_name);
 
 	metrics_api::Counter<double>** counter_ptr = (metrics_api::Counter<double> **) lua_newuserdata(L, sizeof(metrics_api::Counter<double>*));
 	*counter_ptr = double_counter.release();
 
-	luaL_getmetatable(L, otlp_counter_mt_name);
+	luaL_getmetatable(L, otlp_double_counter_mt_name);
 	lua_setmetatable(L, -2);
 
 	return 1;
@@ -111,7 +125,7 @@ static int lua_provider_new_counter(struct lua_State *L)
 
 static int lua_counter_add(struct lua_State *L)
 {
-	metrics_api::Counter<double>** counter_ptr = (metrics_api::Counter<double> **) luaL_checkudata(L, 1, otlp_counter_mt_name);
+	metrics_api::Counter<double>** counter_ptr = (metrics_api::Counter<double> **) luaL_checkudata(L, 1, otlp_double_counter_mt_name);
 
 	luaL_checktype(L, 2, LUA_TNUMBER);
 	double val = lua_tonumber(L, 2);
@@ -139,10 +153,9 @@ static void setfuncs(lua_State* L, const luaL_Reg* l, int nup) {
 extern "C" int luaopen_metrics(struct lua_State *L)
 {
 	lua_newtable(L);
-
 	static const struct luaL_Reg otlp_provider_methods [] = {
 		{"init_otlp_http_exporter", lua_provider_init_otlp_http_exporter},
-		{"new_counter", lua_provider_new_counter},
+		{"meter", lua_provider_new_meter},
 		{"__gc", lua_clean_provider},
 		{NULL, NULL}
 	};
@@ -155,21 +168,32 @@ extern "C" int luaopen_metrics(struct lua_State *L)
 	lua_pop(L, 1);
 
 	lua_newtable(L);
-
-	static const struct luaL_Reg otlp_counter_methods [] = {
-		{"add", lua_counter_add},
+	static const struct luaL_Reg otlp_meter_methods [] = {
+		{"double_counter", lua_meter_new_double_counter},
 		{NULL, NULL}
 	};
-	luaL_newmetatable(L, otlp_counter_mt_name);
+	luaL_newmetatable(L, otlp_meter_mt_name);
 	lua_pushvalue(L, -1);
-	setfuncs(L, otlp_counter_methods, 0);
+	setfuncs(L, otlp_meter_methods, 0);
 	lua_setfield(L, -2, "__index");
-	lua_pushstring(L, otlp_counter_mt_name);
+	lua_pushstring(L, otlp_meter_mt_name);
 	lua_setfield(L, -2, "__metatable");
 	lua_pop(L, 1);
 
 	lua_newtable(L);
+	static const struct luaL_Reg otlp_double_counter_methods [] = {
+		{"add", lua_counter_add},
+		{NULL, NULL}
+	};
+	luaL_newmetatable(L, otlp_double_counter_mt_name);
+	lua_pushvalue(L, -1);
+	setfuncs(L, otlp_double_counter_methods, 0);
+	lua_setfield(L, -2, "__index");
+	lua_pushstring(L, otlp_double_counter_mt_name);
+	lua_setfield(L, -2, "__metatable");
+	lua_pop(L, 1);
 
+	lua_newtable(L);
 	static const struct luaL_Reg meta [] = {
 		{"new", lua_create_provider},
 		{NULL, NULL}
