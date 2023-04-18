@@ -1,0 +1,58 @@
+## Memory profiling
+
+```bash
+valgrind --tool=massif --pages-as-heap=yes tarantool ./perf_scenario.lua
+```
+
+Do not forget to extract exporter memory since server part is ~200 MB.
+
+### Scenario 1
+
+500 meters, 5 double counters per each (2500 total)
+Each observation has 2 labels
+
+Total: 37.6 MB
+Per meter: 75.2 KB
+Per collector: 15 KB
+
+### Scenario 2
+
+1000 meters, 1 double counters per each (1000 total)
+Each observation has 2 labels
+
+Total: 51.5 MB
+Per meter: 51.5 KB
+Per collector: 51.5 KB
+
+### Scenario 3
+
+1 meter, 1000 double counters (1000 total)
+Each observation has 2 labels
+
+Total: 10 MB
+Per meter: 10 MB
+Per collector: 10 KB
+
+### Scenario 4
+
+1 meter, 1000 double counters (1000 total)
+Each observation has 2 labels
+6 series of labels for each counter
+
+Total: 11.6 MB
+Per meter: 11.6 MB
+Per collector: 11.6 KB
+Per series: 1.93 KB
+
+### Scenario 5
+
+1 meter, 1000 double counters (1000 total)
+Each observation has 2 labels
+6 series of labels for each counter
+5 minutes of value updates
+
+Total: 12.2 MB
+Per meter: 12.2 MB
+Per collector: 12.2 KB
+Per series: 2.03 KB
+

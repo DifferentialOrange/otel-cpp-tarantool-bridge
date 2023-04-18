@@ -1,7 +1,7 @@
 local fio = require('fio')
 
-local METERS = 100
-local BUCKETS = {1, 3, 5, 6, 7, 8, 9, 10, 15, 20}
+local METERS = 1
+local BUCKETS = {1000}
 
 local charset = {} -- [0-9a-zA-Z]
 -- for c = 48, 57  do table.insert(charset, string.char(c)) end
@@ -17,20 +17,31 @@ end
 local meter_names = {}
 local counter_names = {}
 
-local scenario = [[
+local scenario_prepare = [[
 local metrics = require('metrics')
 
 local provider = metrics.provider()
 provider:init_otlp_http_exporter("http://localhost:4318/v1/metrics")
+]]
 
+local scenario = scenario_prepare .. [[
 -- Just in case
 local meter_registry = {}
 local counter_registry = {}
 
 local meter, counter
+
+local labels = {
+    { label1 = "value1", label2 = "val1" },
+    { label1 = "value2", label2 = "val1" },
+    { label1 = "value3", label2 = "val1" },
+    { label1 = "value1", label2 = "val2" },
+    { label1 = "value2", label2 = "val2" },
+    { label1 = "value3", label2 = "val2" },
+}
 ]]
 
-for i = 1, METERS do
+for _ = 1, METERS do
     local new_meter_name = random_string(10)
     assert(meter_names[new_meter_name] == nil)
     meter_names[new_meter_name] = true
@@ -38,9 +49,9 @@ for i = 1, METERS do
     scenario = scenario .. ([[
 meter = provider:meter(%q)
 table.insert(meter_registry, meter)
-]]):format(new_meter_name, i)
+]]):format(new_meter_name)
 
-    for j = 1, BUCKETS[math.random(1, #BUCKETS)] do
+    for _ = 1, BUCKETS[math.random(1, #BUCKETS)] do
         local new_counter_name = random_string(10)
         assert(counter_names[new_counter_name] == nil)
         counter_names[new_counter_name] = true
@@ -48,35 +59,47 @@ table.insert(meter_registry, meter)
         scenario = scenario .. ([[
 counter = meter:double_counter(%q)
 table.insert(counter_registry, counter)
-counter:add(%f)
-]]):format(new_counter_name, math.random(1, 1000))
+counter:add(%f, labels[1])
+counter:add(%f, labels[2])
+counter:add(%f, labels[3])
+counter:add(%f, labels[4])
+counter:add(%f, labels[5])
+counter:add(%f, labels[6])
+]]):format(new_counter_name, math.random(1, 1000), math.random(1, 1000),
+                             math.random(1, 1000), math.random(1, 1000),
+                             math.random(1, 1000), math.random(1, 1000))
     end
 
     scenario = scenario .. "\n"
 end
 
-scenario = scenario .. [[
-print('meters: ' .. tostring(#meter_registry))
-print('counters: ' .. tostring(#counter_registry))
+-- scenario = scenario .. [[
+-- print('meters: ' .. tostring(#meter_registry))
+-- print('counters: ' .. tostring(#counter_registry))
 
-local clock = require('clock')
-local fiber = require('fiber')
+-- local clock = require('clock')
+-- local fiber = require('fiber')
 
-local time = 10 * 60
+-- local time = 5 * 60
 
-local start = clock.monotonic()
+-- local start = clock.monotonic()
 
-while (clock.monotonic() - start) < time do
-    for _, c in pairs(counter_registry) do
-        c:add(math.random(1, 1000))
-    end
+-- while (clock.monotonic() - start) < time do
+--     for _, c in pairs(counter_registry) do
+--         c:add(math.random(1, 1000), labels[math.random(1, 6)])
+--     end
 
-    fiber.sleep(5)
+--     fiber.sleep(5)
+-- end
+-- ]]
+
+local function dump_code(name, content)
+    fio.unlink(name)
+    local f = fio.open(name, {'O_RDWR', 'O_CREAT', 'O_APPEND'}, tonumber('644', 8))
+    assert(f)
+    f:write(content)
+    f:close()
 end
-]]
 
-local scenario_name = './perf_scenario_1.lua'
-fio.unlink(scenario_name)
-local f = fio.open(scenario_name, {'O_RDWR', 'O_CREAT', 'O_APPEND'}, tonumber('644',8))
-f:write(scenario)
-f:close()
+dump_code('./perf_scenario_prepare.lua', scenario_prepare)
+dump_code('./perf_scenario.lua', scenario)

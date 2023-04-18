@@ -123,6 +123,37 @@ static int lua_meter_new_double_counter(struct lua_State *L)
 	return 1;
 }
 
+static std::map<std::string, std::string> lua_getstringtable(lua_State *L, int index)
+{
+	std::map<std::string, std::string> res;
+    // Push another reference to the table on top of the stack (so we know
+    // where it is, and this function can work for negative, positive and
+    // pseudo indices
+    lua_pushvalue(L, index);
+    // stack now contains: -1 => table
+    lua_pushnil(L);
+    // stack now contains: -1 => nil; -2 => table
+    while (lua_next(L, -2))
+    {
+        // stack now contains: -1 => value; -2 => key; -3 => table
+        // copy the key so that lua_tostring does not modify the original
+        lua_pushvalue(L, -2);
+        // stack now contains: -1 => key; -2 => value; -3 => key; -4 => table
+        const char *key = lua_tostring(L, -1);
+        const char *value = lua_tostring(L, -2);
+        res[key] = value;
+        // pop value + copy of key, leaving original key
+        lua_pop(L, 2);
+        // stack now contains: -1 => key; -2 => table
+    }
+    // stack now contains: -1 => table (when lua_next returns 0 it pops the key
+    // but does not push anything.)
+    // Pop table
+    lua_pop(L, 1);
+    // Stack is now the same as it was on entry to this function
+    return std::move(res);
+}
+
 static int lua_counter_add(struct lua_State *L)
 {
 	metrics_api::Counter<double>** counter_ptr = (metrics_api::Counter<double> **) luaL_checkudata(L, 1, otlp_double_counter_mt_name);
@@ -130,7 +161,12 @@ static int lua_counter_add(struct lua_State *L)
 	luaL_checktype(L, 2, LUA_TNUMBER);
 	double val = lua_tonumber(L, 2);
 
-	(*counter_ptr)->Add(val);
+	if (lua_gettop(L) > 2) {
+		auto labels = lua_getstringtable(L, 3);
+		(*counter_ptr)->Add(val, labels);
+	} else {
+		(*counter_ptr)->Add(val);
+	}
 
 	return 0;
 }
