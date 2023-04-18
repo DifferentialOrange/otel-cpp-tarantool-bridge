@@ -9,6 +9,7 @@ Do not forget to extract exporter memory since server part is ~200 MB.
 ### Scenario 1
 
 500 meters, 5 double counters per each (2500 total)
+A single observation
 Each observation has 2 labels
 
 Total: 37.6 MB
@@ -18,6 +19,7 @@ Per collector: 15 KB
 ### Scenario 2
 
 1000 meters, 1 double counters per each (1000 total)
+A single observation
 Each observation has 2 labels
 
 Total: 51.5 MB
@@ -27,6 +29,7 @@ Per collector: 51.5 KB
 ### Scenario 3
 
 1 meter, 1000 double counters (1000 total)
+A single observation
 Each observation has 2 labels
 
 Total: 10 MB
@@ -36,6 +39,7 @@ Per collector: 10 KB
 ### Scenario 4
 
 1 meter, 1000 double counters (1000 total)
+A single observation
 Each observation has 2 labels
 6 series of labels for each counter
 
@@ -49,10 +53,46 @@ Per series: 1.93 KB
 1 meter, 1000 double counters (1000 total)
 Each observation has 2 labels
 6 series of labels for each counter
-5 minutes of value updates
+5 minutes of observation every 5 seconds
 
 Total: 12.2 MB
 Per meter: 12.2 MB
 Per collector: 12.2 KB
 Per series: 2.03 KB
 
+## Time performance
+
+### Meters
+
+10000 meters
+
+Total: 20 s
+Per meter: 2 ms
+
+### Collectors
+
+1 meter
+10000 collectors
+
+Total: 160 ms
+Per collector: 16 mks
+
+### Observations with labels
+
+1 meter
+1 collector
+10000 observations
+Each observation has 2 labels
+
+Total: 55 ms
+Per observation: 5.5 mks
+
+### Observations without labels
+
+1 meter
+1 collector
+10000 observations
+Each observation has no labels
+
+Total: 8.5 ms
+Per observation: 850 ns

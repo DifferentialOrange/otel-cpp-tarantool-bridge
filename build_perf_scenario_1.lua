@@ -1,7 +1,8 @@
 local fio = require('fio')
 
 local METERS = 1
-local BUCKETS = {1000}
+local BUCKETS = {1}
+local OBSERVATIONS = 10000
 
 local charset = {} -- [0-9a-zA-Z]
 -- for c = 48, 57  do table.insert(charset, string.char(c)) end
@@ -18,6 +19,8 @@ local meter_names = {}
 local counter_names = {}
 
 local scenario_prepare = [[
+local clock = require('clock')
+
 local metrics = require('metrics')
 
 local provider = metrics.provider()
@@ -39,6 +42,8 @@ local labels = {
     { label1 = "value2", label2 = "val2" },
     { label1 = "value3", label2 = "val2" },
 }
+
+local start = clock.monotonic()
 ]]
 
 for _ = 1, METERS do
@@ -59,15 +64,14 @@ table.insert(meter_registry, meter)
         scenario = scenario .. ([[
 counter = meter:double_counter(%q)
 table.insert(counter_registry, counter)
-counter:add(%f, labels[1])
-counter:add(%f, labels[2])
-counter:add(%f, labels[3])
-counter:add(%f, labels[4])
-counter:add(%f, labels[5])
-counter:add(%f, labels[6])
-]]):format(new_counter_name, math.random(1, 1000), math.random(1, 1000),
-                             math.random(1, 1000), math.random(1, 1000),
-                             math.random(1, 1000), math.random(1, 1000))
+-- counter:add(%f, labels[1])
+]]):format(new_counter_name, math.random(1, 1000))
+
+        for _ = 1, OBSERVATIONS do
+            scenario = scenario .. ([[
+counter:add(%f)
+]]):format(math.random(1, 1000), math.random(1, 6))
+        end
     end
 
     scenario = scenario .. "\n"
@@ -92,6 +96,10 @@ end
 --     fiber.sleep(5)
 -- end
 -- ]]
+
+local scenario = scenario .. [[
+print(tostring(clock.monotonic() - start) .. 's')
+]]
 
 local function dump_code(name, content)
     fio.unlink(name)
