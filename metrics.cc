@@ -1,5 +1,9 @@
 #include <memory>
 #include <thread>
+#include <chrono>
+#include <random>
+#include <algorithm>
+#include <vector>
 #include "opentelemetry/exporters/otlp/otlp_http_metric_exporter.h"
 #include "opentelemetry/exporters/otlp/otlp_http_metric_exporter_factory.h"
 #include "opentelemetry/metrics/provider.h"
@@ -171,6 +175,51 @@ static int lua_counter_add(struct lua_State *L)
 	return 0;
 }
 
+static int lua_counter_add_perf_test(struct lua_State *L)
+{
+	metrics_api::Counter<double>** counter_ptr = (metrics_api::Counter<double> **) luaL_checkudata(L, 1, otlp_double_counter_mt_name);
+
+
+	// First create an instance of an engine.
+    std::random_device rnd_device;
+    // Specify the engine and distribution.
+    std::mt19937 mersenne_engine {rnd_device()};  // Generates random integers
+    std::uniform_real_distribution<double> dist {1, 100};
+    
+    auto gen = [&dist, &mersenne_engine](){
+        return dist(mersenne_engine);
+    };
+
+    size_t samples = 100000;
+    std::vector<double> vec(samples);
+    generate(std::begin(vec), std::end(vec), gen);
+
+	auto start = std::chrono::high_resolution_clock::now();
+
+    for (auto v : vec) {
+        (*counter_ptr)->Add(v);
+    }
+
+	auto end = std::chrono::high_resolution_clock::now();
+
+	auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	std::cout << "No labels time for " << samples << " samples: " << duration.count() << "mks" << std::endl;
+
+	std::map<std::string, std::string> labels{{"mylabel1", "val1"}, {"mylabel2", "val2"}};
+
+	start = std::chrono::high_resolution_clock::now();
+
+    for (auto v : vec) {
+        (*counter_ptr)->Add(v, labels);
+    }
+
+	end = std::chrono::high_resolution_clock::now();
+
+	duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+	std::cout << "With 2 labels time for " << samples << " samples: " << duration.count() << "mks" << std::endl;
+
+	return 0;
+}
 
 // Copied from Lua 5.3 so that we can use it with Lua 5.1.
 static void setfuncs(lua_State* L, const luaL_Reg* l, int nup) {
@@ -219,6 +268,7 @@ extern "C" int luaopen_metrics(struct lua_State *L)
 	lua_newtable(L);
 	static const struct luaL_Reg otlp_double_counter_methods [] = {
 		{"add", lua_counter_add},
+		{"add_perf_test", lua_counter_add_perf_test},
 		{NULL, NULL}
 	};
 	luaL_newmetatable(L, otlp_double_counter_mt_name);

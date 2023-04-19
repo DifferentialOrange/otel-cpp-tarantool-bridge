@@ -96,3 +96,23 @@ Each observation has no labels
 
 Total: 8.5 ms
 Per observation: 850 ns
+
+### Observations with labels (pure C++)
+
+1 meter
+1 collector
+100000 observations
+Each observation has 2 labels
+
+Total: 2 s
+Per observation: 2 mks
+
+### Observations without labels (pure C++)
+
+1 meter
+1 collector
+100000 observations
+Each observation has no labels
+
+Total: 58 ms
+Per observation: 580 ns
