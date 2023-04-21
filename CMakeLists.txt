@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 project(lua-bridge-otel)
-
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 
 set(TARANTOOL_FIND_REQUIRED ON)
